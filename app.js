@@ -12,7 +12,7 @@ const welcome = (req, res) => {
   res.send('Welcome to my favourite movie list');
 };
 
-const { hashPassword } = require('./auth.js');
+const { hashPassword, verifyPassword, verifyToken } = require('./auth.js');
 
 app.get('/', welcome);
 
@@ -24,14 +24,12 @@ app.get('/api/movies/:id', movieHandlers.getMovieById);
 app.get('/api/users', userHandlers.getUsers);
 app.get('/api/users/:id', userHandlers.getUsersById);
 
-app.post('/api/movies', movieHandlers.postMovie);
 app.post('/api/users', hashPassword, userHandlers.postUsers);
-
-app.put('/api/movies/:id', movieHandlers.updateMovie);
-app.put('/api/users/:id', hashPassword, userHandlers.updateUsers);
-
-app.delete('/api/movies/:id', movieHandlers.deleteMovie);
-app.delete('/api/users/:id', userHandlers.deleteUsers);
+app.post(
+  '/api/login',
+  userHandlers.getUserByEmailWithPasswordAndPassToNext,
+  verifyPassword
+);
 
 app.listen(port, (err) => {
   if (err) {
@@ -40,3 +38,13 @@ app.listen(port, (err) => {
     console.log(`Server is listening on ${port}`);
   }
 });
+
+app.use(verifyToken);
+
+app.post('/api/movies', movieHandlers.postMovie);
+
+app.put('/api/movies/:id', movieHandlers.updateMovie);
+app.put('/api/users/:id', hashPassword, userHandlers.updateUsers);
+
+app.delete('/api/movies/:id', movieHandlers.deleteMovie);
+app.delete('/api/users/:id', userHandlers.deleteUsers);

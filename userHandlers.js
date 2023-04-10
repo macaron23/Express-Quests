@@ -50,6 +50,32 @@ const getUsersById = (req, res) => {
     });
 };
 
+const getUserByEmailWithPasswordAndPassToNext = (req, res, next) => {
+  const { email } = req.body;
+  console.log('email récupéré : ', email);
+  database
+    .query(
+      'select firstname, lastname, email, city, language, hashedPassword, id from users where email= ?',
+      [email]
+    )
+
+    .then(([users]) => {
+      console.log('user récupéré :', users[0]);
+      if (users[0] != null) {
+        req.user = users[0];
+        console.log('req.user :', req.user);
+
+        next();
+      } else {
+        res.sendStatus(401);
+      }
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send('Error retrieving data from database');
+    });
+};
+
 const postUsers = (req, res) => {
   const { firstname, lastname, email, city, language, hashedPassword } =
     req.body;
@@ -72,43 +98,56 @@ const updateUsers = (req, res) => {
   console.log('updateUsers id : ', req.params.id, ' req body : ', req.body);
   const id = parseInt(req.params.id);
   console.log('updateUsers id : ', id);
-  const { firstname, lastname, email, city, language, hashedPassword } =
-    req.body;
+  console.log('token user id : ', req.payload.sub);
+  if (id != req.payload.sub) {
+    console.log('id different modif refusée');
+    res.sendStatus(403);
+  } else {
+    const { firstname, lastname, email, city, language, hashedPassword } =
+      req.body;
 
-  database
-    .query(
-      'update users set firstname = ?, lastname = ?, email = ?, city = ?, language = ?, hashedPassword = ? where id = ?',
-      [firstname, lastname, email, city, language, hashedPassword, id]
-    )
-    .then(([result]) => {
-      if (result.affectedRows === 0) {
-        res.status(404).send('Not Found');
-      } else {
-        res.sendStatus(204);
-      }
-    })
-    .catch((err) => {
-      console.error(err);
-      res.status(500).send('Error editing the movie');
-    });
+    database
+      .query(
+        'update users set firstname = ?, lastname = ?, email = ?, city = ?, language = ?, hashedPassword = ? where id = ?',
+        [firstname, lastname, email, city, language, hashedPassword, id]
+      )
+      .then(([result]) => {
+        if (result.affectedRows === 0) {
+          res.status(404).send('Not Found');
+        } else {
+          res.sendStatus(204);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(500).send('Error editing the movie');
+      });
+  }
 };
 
 const deleteUsers = (req, res) => {
+  console.log('deleteUsers id : ', req.params.id, ' req body : ', req.body);
   const id = parseInt(req.params.id);
-
-  database
-    .query('delete from users where id = ?', [id])
-    .then(([result]) => {
-      if (result.affectedRows === 0) {
-        res.status(404).send('Not Found');
-      } else {
-        res.sendStatus(204);
-      }
-    })
-    .catch((err) => {
-      console.error(err);
-      res.status(500).send('Error deleting the movie');
-    });
+  console.log('deleteUsers id : ', id);
+  console.log('token user id : ', req.payload.sub);
+  if (id != req.payload.sub) {
+    console.log('id different modif refusée');
+    res.sendStatus(403);
+  } else {
+    database
+      .query('delete from users where id = ?', [id])
+      .then(([result]) => {
+        if (result.affectedRows === 0) {
+          res.status(404).send('Not Found');
+        } else {
+          res.sendStatus(204);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(500).send('Error deleting the movie');
+      });
+  }
 };
 
 module.exports = {
@@ -117,4 +156,5 @@ module.exports = {
   postUsers,
   updateUsers,
   deleteUsers,
+  getUserByEmailWithPasswordAndPassToNext,
 };
